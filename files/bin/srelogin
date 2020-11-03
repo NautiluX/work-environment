@@ -34,6 +34,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib
 
 # 3rd-party modules
@@ -139,9 +140,17 @@ def main(args):
 
         token = response.html.find('code', first=True).text
         subprocess_args = [args.oc_command, 'login', api_url, '--token=' + token]
+        
+        new_file, filename = tempfile.mkstemp()
+        my_env = os.environ.copy()
+        my_env["KUBECONFIG"]=filename
         if args.socks_proxy:
             os.environ['HTTPS_PROXY'] = args.socks_proxy
-        subprocess.call(subprocess_args, stdout=sys.stdout, stderr=sys.stderr)
+        rc = subprocess.call(subprocess_args, stdout=sys.stderr, stderr=sys.stderr, env=my_env)
+        if rc == 0:
+            print('# Successfully logged in.')
+            print('# Use the following environment variable to run commands at the cluster')
+            print('export KUBECONFIG=' + filename)
 
 def help_and_default(help_string, default):
     kwargs = {}
